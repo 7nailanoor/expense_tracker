@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Page Title -->
+    <h2 class="mb-4 text-center text-primary fw-bold">
+        <i class="fas fa-chart-pie"></i> Dashboard
+    </h2>
+
+    <!-- Month & Year Dropdown -->
+    <form method="get" action="/dashboard" class="row g-3 justify-content-center mb-4">
+        <div class="col-md-4">
+            <select name="month" class="form-select shadow-sm" required>
+                <option value="" disabled {% if not selected_month %}selected{% endif %}>Select Month</option>
+                {% for m in available_months %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                        {{ m | month_name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select name="year" class="form-select shadow-sm" required>
+                <option value="" disabled {% if not selected_year %}selected{% endif %}>Select Year</option>
+                {% for y in available_years %}
+                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>
+                        {{ y }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100 shadow-sm">
+                <i class="fas fa-eye"></i> View
+            </button>
+        </div>
+    </form>
+    <hr>
+
+    {% if pie_data %}
+    <div class="text-center mb-4">
+        <h4 class="fw-bold text-success">
+            Total Spending ({{ selected_month | month_name }} {{ selected_year }}):
+            <span class="text-dark">Rs. {{ total_spending }}</span>
+        </h4>
+    </div>
+
+    <!-- Top 3 Categories -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="fas fa-crown text-warning"></i> Top 3 Categories</h5>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for cat in top_categories %}
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>{{ cat.category }}</span>
+                    <span class="fw-bold text-primary">Rs. {{ cat.total }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Pie Chart -->
+    <div class="text-center mb-4">
+        <div style="max-width: 300px; margin: 0 auto;">
+            <canvas id="pieChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Budget Form -->
+<div class="text-center mt-4">
+    <h5><i class="fas fa-wallet"></i> Set Monthly Budgets</h5>
+</div>
+
+<form method="POST" action="/set_budget" class="mx-auto" style="max-width: 400px; background: #f9f9f9; padding: 15px; border-radius: 8px; box-shadow: 0px 0px 8px rgba(0,0,0,0.1);">
+    <input type="hidden" name="month" value="{{ selected_month }}">
+    <input type="hidden" name="year" value="{{ selected_year }}">
+    {% for category in all_categories %}
+        <div class="mb-2">
+            <label class="fw-bold">{{ category }}</label>
+            <input type="number" name="budget_limit_{{ category }}" class="form-control text-center"
+                   placeholder="Enter budget" value="{{ budgets.get(category, '') }}" style="font-size: 14px; height: 30px;">
+            {% if budgets.get(category) %}
+                <small class="text-muted">
+                    Spent: Rs. {{ pie_data | selectattr("category", "equalto", category) | map(attribute="total") | sum }}
+                    | Remaining: Rs. {{ budgets[category] - (pie_data | selectattr("category", "equalto", category) | map(attribute="total") | sum) }}
+                </small>
+            {% endif %}
+        </div>
+    {% endfor %}
+    <div class="text-center">
+        <button type="submit" class="btn btn-success btn-sm mt-2">
+            <i class="fas fa-save"></i> Save Budgets
+        </button>
+    </div>
+</form>
+{% else %}
+        <p class="text-danger mt-4 text-center fw-bold">
+            <i class="fas fa-exclamation-circle"></i> No records found for selected month and year.
+        </p>
+    {% endif %}
+</div>
+
+<!-- embed JSON safely -->
+<script id="pie-data" type="application/json">{{ pie_data | default([]) | tojson | safe }}</script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const raw = document.getElementById('pie-data')?.textContent || '[]';
+  let pieData = [];
+  try {
+    pieData = JSON.parse(raw);
+  } catch (e) {
+    pieData = [];
+  }
+
+  if (Array.isArray(pieData) && pieData.length) {
+    const labels = pieData.map(item => item.category);
+    const totals = pieData.map(item => item.total);
+
+    const canvas = document.getElementById('pieChart');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{ data: totals, backgroundColor: ['#007bff','#28a745','#ffc107','#dc3545','#6f42c1'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+  }
+</script>
+{% endblock %}
