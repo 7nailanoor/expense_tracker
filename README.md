@@ -24,7 +24,7 @@ This is a web-based personal expense tracker built using **Python Flask**, **MyS
 
 1. **Clone or Download this Project**
    ```bash
-   git clone https://github.com/yourusername/expense-tracker.git
+   git clone https://github.com/7nailanoor/expense-tracker.git
    cd expense-tracker
    ```
 
@@ -83,5 +83,6 @@ expense-tracker/
 │   └── style.css
 └── README.md
 ```
+
 
 
